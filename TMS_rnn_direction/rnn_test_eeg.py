@@ -146,7 +146,8 @@ def create_dataset(data, input_size, device):
 def plot_results(actual_output, model_output, args):
     plt.plot(actual_output, 'r', label='Actual')
     plt.plot(model_output, 'b', label='Prediction')
-    plt.title('TMS Artifact Preditiction', fontsize=30)
+    plt.title('TMS Artifact Preditiction MSO: %s ch: %s' %(args.intensity,
+              args.channel), fontsize=30)
     plt.ylabel('Amplitude')
     plt.xlabel('Time (Discrete)')
     plt.legend()
