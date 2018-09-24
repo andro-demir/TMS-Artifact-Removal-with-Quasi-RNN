@@ -124,29 +124,35 @@ def inv_logscale(data, inc, log_base=12):
     So the model can always look back input_size number of samples
     for training the rnn
 """ 
-def create_dataset(data, input_size, device):
-    # Shuffles the rows of the dataset:
-    np.random.shuffle(data) # in-place operation
-    
-    train_input = torch.from_numpy(data[4:29, :]).to(device)
-    train_output = torch.from_numpy(data[4:29, input_size:]).to(device)
-    
-    validation_input = torch.from_numpy(data[:4, :]).to(device)
-    validation_output = torch.from_numpy(data[:4, input_size:]).to(device)
-    
-    test_input = torch.from_numpy(data[29:, :]).to(device)
-    test_output = torch.from_numpy(data[29:, input_size:]).to(device)
-    
-    return train_input, train_output, validation_input, validation_output, \
-           test_input, test_output
+def create_dataset(data, input_size, device, fold):
+    m = int(data.shape[0]) # total number of samples
+    assert m==30, "There must be 30 samples in the dataset"
+    N = int(m/5) # length of each fold:
 
+    train_input = torch.from_numpy(data[fold*N:(fold+1)*N]).to(device)
+    train_output = torch.from_numpy(data[fold*N:(fold+1)*N, input_size:]).\
+                                                               to(device)
+    if fold==0:
+        val_input = torch.from_numpy(data[24:29]).to(device)
+        val_output = torch.from_numpy(data[24:29, input_size:]).to(device)
+    else:
+        val_input = torch.from_numpy(data[(fold-1)*N:(fold)*N]).to(device)
+        val_output = torch.from_numpy(data[(fold-1)*N:(fold)*N, input_size:]).\
+                                                                   to(device)
+    
+    test_input = torch.from_numpy(data[(29+fold)%m:]).to(device)
+    test_output = torch.from_numpy(data[(29+fold)%m:, input_size:]).to(device)
+    
+    return train_input, train_output, val_input, val_output,\
+           test_input, test_output
+ 
 '''
     Draws the results.
 '''
 def plot_results(actual_output, model_output, args):
     plt.plot(actual_output, 'r', label='Actual')
     plt.plot(model_output, 'b', label='Prediction')
-    plt.title('TMS Artifact Preditiction MSO: %s ch: %s' %(args.intensity,
+    plt.title('TMS Artifact Preditiction MSO:%s ch:%s' %(args.intensity,
               args.channel), fontsize=30)
     plt.ylabel('Amplitude')
     plt.xlabel('Time (Discrete)')
@@ -159,7 +165,6 @@ def main():
     args = pass_legal_args()
     dropout = 0.5
     hidden_size, input_size = 64, 5
-    writer = SummaryWriter() # to plot the loos graph on tensorboard
        
     # Loads the TMS-EEG data of desired intensity and from desired channel
     dp = parser() # Initializes the class, loads TMS-EEG data
@@ -167,6 +172,8 @@ def main():
     dp.get_channel(args.channel)     # Calls the get_channel method
     # Model expects object type of double tensor, write as type 'float64'
     unscaled_data = np.transpose(dp.channel_data).astype('float64')
+    # Shuffles the rows of the dataset:
+    np.random.shuffle(unscaled_data) # in-place operation
 
     # Scaling the data:
     if args.scaler.lower() == "log":
@@ -175,17 +182,18 @@ def main():
         data = minmax_scale(unscaled_data)
 
     # This implements K-fold cross validation, K=10
-    k = 10
-    for _ in range(k): 
+    k = 5
+    for fold in range(k): 
+        writer = SummaryWriter() # to plot the loos graph on tensorboard
+
         # Builds the model, sets the device
         temporal_model = Temporal_Learning(args.model, input_size, hidden_size,
                                            dropout)
         temporal_model, device = set_device(temporal_model)
 
-        # Splits the data for train/test input/output
-        train_input, train_output, validation_input, validation_output, \
-        test_input, test_output = create_dataset(data, input_size, 
-                                                    device)
+        # Splits the data for train/validation/test input/output
+        train_input, train_output, val_input, val_output, \
+        test_input, test_output = create_dataset(data, input_size, device, fold)
         criterion, optimizer, epochs = set_optimization(temporal_model, 
                                                         args.optimizer)  
     
@@ -193,11 +201,11 @@ def main():
             print('Epoch: ', epoch+1)
             train_model(temporal_model, train_input, train_output, optimizer, 
                         epoch, criterion, device, writer)
-            validate_model(temporal_model, validation_input, validation_output, 
-                        epoch, criterion, args.future, device, writer)           
+            validate_model(temporal_model, val_input, val_output, epoch, 
+                           criterion, args.future, device, writer)           
             model_output = test_model(temporal_model, test_input, test_output, 
-                                    epoch, criterion, args.future, device, 
-                                    writer) 
+                                      epoch, criterion, args.future, device, 
+                                      writer) 
 
         if args.save == True:
             save_model(temporal_model, args.optimizer.lower(), 
