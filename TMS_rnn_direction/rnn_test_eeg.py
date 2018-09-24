@@ -5,7 +5,7 @@ from math import log
 import torch
 from rnn_model import Temporal_Learning, set_optimization, train_model, \
                       validate_model, test_model, save_model
-from data_parser import parser
+from melon_data_parser import parser
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from torch.autograd import Variable
@@ -92,8 +92,7 @@ def pass_legal_args():
 '''
 def minmax_scale(data):
     scaler = MinMaxScaler(feature_range=(0,1))
-    data_scaled = scaler.fit_transform(np.transpose(data)) 
-        
+    data_scaled = scaler.fit_transform(np.transpose(data))    
     return np.transpose(data_scaled)
 
 '''

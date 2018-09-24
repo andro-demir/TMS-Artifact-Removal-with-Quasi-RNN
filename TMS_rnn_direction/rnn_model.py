@@ -184,6 +184,7 @@ def test_model(model, test_input, test_output, epoch, criterion, future,
 def save_model(model, optimizer, rnn_type, scaler, intensity, channel):
     torch.save(model.state_dict(), f="../TrainedModels/tmseeg_" + rnn_type +
                                      "_" + optimizer + "_" + scaler + "_" + 
-                                     intensity + "_" + channel + "_.model")
+                                     str(intensity) + "_" + str(channel) + 
+                                     "_.model")
     
     
