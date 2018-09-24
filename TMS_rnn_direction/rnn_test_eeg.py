@@ -212,7 +212,8 @@ def main():
 
         if args.save == True:
             save_model(temporal_model, args.optimizer.lower(), 
-                        args.model.lower())
+                       args.model.lower(), args.scaler, args.intensity, 
+                       args.channel)
 
         if args.scaler.lower() == "minmax":
             inp = test_input.numpy()[0,input_size:].reshape(-1,1)
