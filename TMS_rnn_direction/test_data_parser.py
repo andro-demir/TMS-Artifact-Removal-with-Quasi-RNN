@@ -1,5 +1,5 @@
 import unittest
-from data_parser import parser
+from melon_data_parser import parser
 
 # inherits the testcases from unittest in the class TestParser
 class TestParser(unittest.TestCase):
