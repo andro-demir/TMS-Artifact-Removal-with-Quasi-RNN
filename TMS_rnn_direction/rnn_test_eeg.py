@@ -117,6 +117,10 @@ def inv_logscale(data, inc, log_base=12):
     data -= inc
     return data
 
+def split(a, n):
+    k, m = divmod(len(a), n)
+    return (a[i*k + min(i, m):(i+1)*k + min(i+1, m)] for i in range(n))
+
 """
     Splits the trials into train, test and validation sets.
     Inputs take the the entire array
@@ -124,24 +128,22 @@ def inv_logscale(data, inc, log_base=12):
     So the model can always look back input_size number of samples
     for training the rnn
 """ 
-def create_dataset(data, input_size, device, fold):
-    m = int(data.shape[0]) # total number of samples
-    assert m==30, "There must be 30 samples in the dataset"
-    N = int(m/5) # length of each fold:
+def create_dataset(data, input_size, device, k, fold):
+    indices = list(range(data.shape[0]))
+    fold_indx = list(split(indices, k))
+    train_indx = list(set(indices) - set(fold_indx[fold]))
+    train_data = data[np.ix_(train_indx)]
 
-    train_input = torch.from_numpy(data[fold*N:(fold+1)*N]).to(device)
-    train_output = torch.from_numpy(data[fold*N:(fold+1)*N, input_size:]).\
-                                                               to(device)
-    if fold==0:
-        val_input = torch.from_numpy(data[24:29]).to(device)
-        val_output = torch.from_numpy(data[24:29, input_size:]).to(device)
-    else:
-        val_input = torch.from_numpy(data[(fold-1)*N:(fold)*N]).to(device)
-        val_output = torch.from_numpy(data[(fold-1)*N:(fold)*N, input_size:]).\
-                                                                   to(device)
+    train_input = torch.from_numpy(train_data).to(device)
+    train_output = torch.from_numpy(train_data[:,input_size:]).to(device)
     
-    test_input = torch.from_numpy(data[(29+fold)%m:]).to(device)
-    test_output = torch.from_numpy(data[(29+fold)%m:, input_size:]).to(device)
+    val_input = torch.from_numpy(data[fold_indx[fold][:-1]]).to(device)
+    val_output = torch.from_numpy(data[fold_indx[fold][:-1], input_size:]).\
+                                                                to(device)
+
+    test_input = torch.from_numpy(data[fold_indx[fold][-1]:]).to(device)
+    test_output = torch.from_numpy(data[fold_indx[fold][-1]:, input_size:]).\
+                                                                  to(device)
     
     return train_input, train_output, val_input, val_output,\
            test_input, test_output
@@ -193,7 +195,8 @@ def main():
 
         # Splits the data for train/validation/test input/output
         train_input, train_output, val_input, val_output, \
-        test_input, test_output = create_dataset(data, input_size, device, fold)
+        test_input, test_output = create_dataset(data, input_size, device, k, 
+                                                                        fold)
         criterion, optimizer, epochs = set_optimization(temporal_model, 
                                                         args.optimizer)  
     
