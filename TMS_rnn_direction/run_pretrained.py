@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from human_data_parser import parser
+from melon_data_parser import parser
 from sklearn.preprocessing import MinMaxScaler
 from math import log
 import numpy as np
@@ -241,19 +241,19 @@ def main():
     network.eval() # set in eval mode 
 
     with torch.no_grad():
-        test_input = torch.from_numpy(data[0:]).to(device)
+        test_input = torch.from_numpy(data)
         test_input = Variable(test_input.to(device), requires_grad=False) 
         pred = network(test_input, device, args.future)
         # cuda tensor cannot be converted to numpy directly, 
         # tensor.cpu to copy the tensor to host memory first
-        model_output = pred.detach().cpu().numpy()
+        model_output = pred.detach().cpu().numpy() 
 
     if args.scaler.lower() == "minmax":
         inp = test_input.numpy()[0,input_size:].reshape(-1,1)
         out = model_output[0,:-1].reshape(-1,1)
         plot_results(inp, out, args) # scaled
         # now inverse scaling and plots again   
-        a, b = np.amin(unscaled_data[-1,:]), np.amax(unscaled_data[-1,:])
+        a, b = np.amin(unscaled_data[0,:]), np.amax(unscaled_data[0,:])
         real_inp = inp * (b - a) + a
         real_out = out * (b - a) + a
         plot_results(real_inp, real_out, args) # scaled
