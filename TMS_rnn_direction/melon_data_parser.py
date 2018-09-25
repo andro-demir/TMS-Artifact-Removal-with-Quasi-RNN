@@ -33,4 +33,20 @@ class parser:
         self.channel = channel
         self.channel_data = self.intensity_data[self.channel, 
                                                 parser.start:parser.end, :]
-               
+
+    '''
+        This gets all eeg data of one channel from all different intensities
+        into a 2D array.
+    '''
+    def get_all_intensities(self, channel):
+        intensities = list(range(10, 90, 10))
+        all_intensity_data = np.array([])
+        for i in intensities:
+            intensity_data = self.eeg_data[i]
+            channel_data = intensity_data[channel, parser.start:parser.end, :]
+            if all_intensity_data.size:
+                all_intensity_data = np.vstack([all_intensity_data, channel_data])
+            else: 
+                channel_data
+            
+        return all_intensity_data
