@@ -42,11 +42,13 @@ class parser:
         intensities = list(range(10, 90, 10))
         all_intensity_data = np.array([])
         for i in intensities:
-            intensity_data = self.eeg_data[i]
-            channel_data = intensity_data[channel, parser.start:parser.end, :]
-            if all_intensity_data.size:
+            MSO = 'MSO%d'%i
+            intensity_data = self.eeg_data[MSO]
+            channel_data = np.transpose(intensity_data[channel, 
+                                        parser.start:parser.end, :])
+            if all_intensity_data.size != 0:
                 all_intensity_data = np.vstack([all_intensity_data, channel_data])
             else: 
-                channel_data
-            
+                all_intensity_data = channel_data
+        
         return all_intensity_data

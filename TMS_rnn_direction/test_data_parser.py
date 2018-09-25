@@ -34,6 +34,11 @@ class TestParser(unittest.TestCase):
         print("Test 4: Normal channel input")
         self.dp.get_intensity(intensity=30)   
         self.dp.get_channel(channel=30)
+    
+    def test_get_all_intensities(self):
+        print("Test 5: Get data from all intensity levels for a single "
+              "channel")
+        self.assertEqual(self.dp.get_all_intensities(channel=7).shape[0], 240)
 
 
 if __name__ == '__main__':
