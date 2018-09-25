@@ -25,7 +25,8 @@ def get_args():
                         "'log'."), required=True)
     parser.add_argument("-intensity", type=int, help=("Enter the TMS intensity"
                         " level (MSO). Acceptable entries are 10, 20, 30, 40, "
-                        "50, 60, 70, 80."), required=True)
+                        "50, 60, 70, 80 and 0. O for taking all intensity "
+                        "levels."), required=True)
     parser.add_argument("-channel", type=int, help=("Enter the channel number."
                         " Acceptable entries are 0, 1 , ... 62."), 
                         required=True)
@@ -38,7 +39,7 @@ def get_args():
     If args in the command line are legal, returns args.
 '''
 def pass_legal_args():
-    acceptable_MSO = list(range(10, 90, 10))
+    acceptable_MSO = list(range(0, 90, 10))
     acceptable_channel = list(range(0, 63, 1))
     acceptable_scalers = ['minmax', 'log']
     args = get_args()
@@ -212,12 +213,15 @@ def plot_results(actual_output, model_output, args):
 
 def main():
     args = pass_legal_args()
-     # Loads the TMS-EEG data of desired intensity and from desired channel
+    # Loads the TMS-EEG data of desired intensity and from desired channel
     dp = parser() # Initializes the class, loads TMS-EEG data
-    dp.get_intensity(args.intensity) # Calls the get_intensity method
-    dp.get_channel(args.channel)     # Calls the get_channel method
-    # Model expects object type of double tensor, write as type 'float64'
-    unscaled_data = np.transpose(dp.channel_data).astype('float64')
+    if args.intensity != 0:
+        dp.get_intensity(args.intensity) # Calls the get_intensity method
+        dp.get_channel(args.channel)     # Calls the get_channel method
+        # Model expects object type of double tensor, write as type 'float64'
+        unscaled_data = np.transpose(dp.channel_data).astype('float64')
+    else:
+        unscaled_data = dp.get_all_intensities(args.channel).astype('float64')
     # Shuffles the rows of the dataset:
     np.random.shuffle(unscaled_data) # in-place operation
 

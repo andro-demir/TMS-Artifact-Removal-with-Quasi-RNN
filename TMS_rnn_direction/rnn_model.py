@@ -108,7 +108,7 @@ def set_optimization(model, optimizer):
     # optimization requires to solve large number of variables
     elif optimizer.lower() == 'l-bfgs':
         optimizer = optim.LBFGS(model.parameters(), lr=0.5)
-        epochs = 80
+        epochs = 200
     return criterion, optimizer, epochs
     
 '''

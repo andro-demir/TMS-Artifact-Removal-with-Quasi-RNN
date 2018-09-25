@@ -50,7 +50,8 @@ def get_args():
                         "'log'."), required=True)
     parser.add_argument("-intensity", type=int, help=("Enter the TMS intensity"
                         " level (MSO). Acceptable entries are 10, 20, 30, 40, "
-                        "50, 60, 70, 80."), required=True)
+                        "50, 60, 70, 80 and 0. O for taking all intensity "
+                        "levels."), required=True)
     parser.add_argument("-channel", type=int, help=("Enter the channel number."
                         " Acceptable entries are 0, 1 , ... 62."), 
                         required=True)
@@ -63,7 +64,7 @@ def get_args():
     If args in the command line are legal, returns args.
 '''
 def pass_legal_args():
-    acceptable_MSO = list(range(10, 90, 10))
+    acceptable_MSO = list(range(0, 90, 10))
     acceptable_channel = list(range(0, 63, 1))
     acceptable_scalers = ['minmax', 'log']
     args = get_args()
@@ -78,8 +79,8 @@ def pass_legal_args():
            "optimizer are l-bfgs and adam. You entered: " + args.optimizer)
     assert args.future > 0, "Future must be a positive integer."
     assert args.intensity in acceptable_MSO, ("Acceptable entries for TMS "
-           "intensity (MSO) are 10, 20, 30, 40, 50, 60, 70, 80.\nYou entered "
-           + args.intensity)
+           "intensity (MSO) are 0, 10, 20, 30, 40, 50, 60, 70, 80.\nYou "
+           "entered "+ args.intensity)
     assert args.channel in acceptable_channel, ("Acceptable entries for the "
            "EEG channels are 0, 1, 2, 3, ... 62.\nYou entered " + args.channel)
     assert args.scaler in acceptable_scalers, ("Acceptable entries for the "
@@ -169,10 +170,14 @@ def main():
        
     # Loads the TMS-EEG data of desired intensity and from desired channel
     dp = parser() # Initializes the class, loads TMS-EEG data
-    dp.get_intensity(args.intensity) # Calls the get_intensity method
-    dp.get_channel(args.channel)     # Calls the get_channel method
-    # Model expects object type of double tensor, write as type 'float64'
-    unscaled_data = np.transpose(dp.channel_data).astype('float64')
+    if args.intensity != 0:
+        dp.get_intensity(args.intensity) # Calls the get_intensity method
+        dp.get_channel(args.channel)     # Calls the get_channel method
+        # Model expects object type of double tensor, write as type 'float64'
+        unscaled_data = np.transpose(dp.channel_data).astype('float64')
+    else:
+        unscaled_data = dp.get_all_intensities(args.channel).astype('float64')
+    
     # Shuffles the rows of the dataset:
     np.random.shuffle(unscaled_data) # in-place operation
 
