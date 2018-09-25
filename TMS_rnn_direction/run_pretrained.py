@@ -232,7 +232,7 @@ def main():
         data = minmax_scale(unscaled_data)
     
     # Loads the pre-trained model's parameters to the network architecture 
-    input_size, hidden_size, dropout = 5, 64, 0.5
+    input_size, hidden_size, dropout = 5, 128, 0.5
     network = Temporal_Learning(args.model, input_size, hidden_size, dropout)
     load_model(network, args.model, args.optimizer, args.scaler, 
                args.intensity, args.channel)

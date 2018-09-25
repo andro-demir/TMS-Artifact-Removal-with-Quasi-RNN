@@ -166,7 +166,7 @@ def plot_results(actual_output, model_output, args):
 def main():
     args = pass_legal_args()
     dropout = 0.5
-    hidden_size, input_size = 64, 5
+    hidden_size, input_size = 128, 5
        
     # Loads the TMS-EEG data of desired intensity and from desired channel
     dp = parser() # Initializes the class, loads TMS-EEG data
@@ -235,6 +235,8 @@ def main():
             plot_results(input_inverted, output_inverted, args)
 
         writer.close()
+        #exit(0)
+
 
 if __name__ == "__main__":
     main()
