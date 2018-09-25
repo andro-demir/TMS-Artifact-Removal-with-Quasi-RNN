@@ -208,8 +208,6 @@ def plot_results(actual_output, model_output, args):
     plt.ylabel('Amplitude')
     plt.xlabel('Time (Discrete)')
     plt.legend()
-    plt.savefig('MSO%s_ch%s_%s_%s.pdf'%(args.intensity, args.channel, 
-                args.model.lower(), args.optimizer.lower()))
     plt.show()
 
 def main():
@@ -239,9 +237,12 @@ def main():
     network.eval() # set in eval mode 
 
     with torch.no_grad():
-        test_input = Variable(X.to(device))
-        test_output = Variable(Y.to(device))
-        model_output = network(test_input, device, args.future)
+        test_input = torch.from_numpy(data[0:]).to(device)
+        test_input = Variable(test_input.to(device), requires_grad=False) 
+        pred = network(test_input, device, args.future)
+        # cuda tensor cannot be converted to numpy directly, 
+        # tensor.cpu to copy the tensor to host memory first
+        model_output = pred.detach().cpu().numpy()
 
     if args.scaler.lower() == "minmax":
         inp = test_input.numpy()[0,input_size:].reshape(-1,1)
