@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from melon_data_parser import parser
+from human_data_parser import parser
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.externals import joblib
 from math import log

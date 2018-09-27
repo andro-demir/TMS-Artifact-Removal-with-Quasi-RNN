@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import scipy.io as spio
+import matplotlib.pyplot as plt
 
 class parser:
     
@@ -52,3 +53,24 @@ class parser:
                 all_intensity_data = channel_data
         
         return all_intensity_data
+
+
+def plot_data(intensity, channel):
+    filepath = '../tmseegData.mat'
+    start = 9990
+    end = 10040
+    eeg_data = spio.loadmat(filepath, squeeze_me=True)
+    MSO = 'MSO%d'%intensity
+    intensity_data = eeg_data[MSO]
+    channel_data = intensity_data[channel, start:end, :]
+    channel_data = channel_data.flatten('F')
+    plt.plot(channel_data[:])
+    plt.show()
+
+def main():
+    plot_data(20, 7)
+    plot_data(80, 7)
+
+
+if __name__ == "__main__":
+    main()

@@ -163,7 +163,7 @@ def plot_results(actual_output, model_output, args):
     plt.ylabel('Amplitude')
     plt.xlabel('Time (Discrete)')
     plt.legend()
-    plt.savefig('MSO%s_ch%s_%s_%s.pdf'%(args.intensity, args.channel, 
+    plt.savefig('results/MSO%s_ch%s_%s_%s.pdf'%(args.intensity, args.channel, 
                 args.model.lower(), args.optimizer.lower()))
     plt.show()
 
