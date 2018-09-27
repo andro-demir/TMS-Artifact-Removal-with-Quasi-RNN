@@ -1,11 +1,13 @@
 from argparse import ArgumentParser, ArgumentTypeError
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.externals import joblib
 from math import log
 import torch
 from rnn_model import Temporal_Learning, set_optimization, train_model, \
                       validate_model, test_model, save_model
-from melon_data_parser import parser
+from melon_data_parser import parser as get_melon
+from human_data_parser import parser as get_human
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from torch.autograd import Variable
@@ -91,9 +93,11 @@ def pass_legal_args():
     If in minmax mode, transforms input by scaling them to range (0,1) linearly
     Transforms each trial in the range 0-1 seperately  
 '''
-def minmax_scale(data):
+def minmax_scale(data, args):
     scaler = MinMaxScaler(feature_range=(0,1))
-    data_scaled = scaler.fit_transform(np.transpose(data))    
+    data_scaled = scaler.fit_transform(np.transpose(data)) 
+    joblib.dump(scaler, "Scalers/minmax_int" + str(args.intensity) + "_ch" + 
+                str(args.channel) + "_.sav") 
     return np.transpose(data_scaled)
 
 '''
@@ -166,18 +170,31 @@ def plot_results(actual_output, model_output, args):
 def main():
     args = pass_legal_args()
     dropout = 0.5
-    hidden_size, input_size = 128, 5
+    hidden_size, input_size = 32, 5
        
     # Loads the TMS-EEG data of desired intensity and from desired channel
-    dp = parser() # Initializes the class, loads TMS-EEG data
+    mp = get_melon() # Method to get melon data
+    hp = get_human() # Method to get human data
     if args.intensity != 0:
-        dp.get_intensity(args.intensity) # Calls the get_intensity method
-        dp.get_channel(args.channel)     # Calls the get_channel method
+        mp.get_intensity(args.intensity) # Calls the get_intensity method
+        mp.get_channel(args.channel)     # Calls the get_channel method
         # Model expects object type of double tensor, write as type 'float64'
-        unscaled_data = np.transpose(dp.channel_data).astype('float64')
+        unscaled_m_data = np.transpose(mp.channel_data).astype('float64')
+        hp.get_intensity(args.intensity) 
+        hp.get_channel(args.channel)     
+        unscaled_h_data = np.transpose(hp.channel_data).astype('float64')
+        # Shuffle and take only 10 trials from the human data
+        np.random.shuffle(unscaled_h_data)
+        unscaled_data = np.vstack((unscaled_m_data, unscaled_h_data[:10,:]))
     else:
-        unscaled_data = dp.get_all_intensities(args.channel).astype('float64')
-    
+        unscaled_m_data = mp.get_all_intensities(args.channel).\
+                                             astype('float64')
+        unscaled_h_data = hp.get_all_intensities(args.channel).\
+                                             astype('float64')
+        # Shuffle and take only 80 trials from the human data
+        np.random.shuffle(unscaled_h_data)
+        unscaled_data = np.vstack((unscaled_m_data, unscaled_h_data[:80,:]))
+
     # Shuffles the rows of the dataset:
     np.random.shuffle(unscaled_data) # in-place operation
 
@@ -185,7 +202,7 @@ def main():
     if args.scaler.lower() == "log":
         data, inc = log_scale(unscaled_data)
     elif args.scaler.lower() == "minmax":
-        data = minmax_scale(unscaled_data)
+        data = minmax_scale(unscaled_data, args)
 
     # This implements K-fold cross validation, K=10
     k = 5
@@ -224,7 +241,7 @@ def main():
             out = model_output[0,:-1].reshape(-1,1)
             plot_results(inp, out, args) # scaled
             # now inverse scaling and plots again   
-            a, b = np.amin(unscaled_data[-1,:]), np.amax(unscaled_data[-1,:])
+            a, b = np.amin(unscaled_data[0,:]), np.amax(unscaled_data[0,:])
             real_inp = inp * (b - a) + a
             real_out = out * (b - a) + a
             plot_results(real_inp, real_out, args) # scaled
@@ -235,7 +252,7 @@ def main():
             plot_results(input_inverted, output_inverted, args)
 
         writer.close()
-        #exit(0)
+        exit(0)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from argparse import ArgumentParser, ArgumentTypeError
 from melon_data_parser import parser
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.externals import joblib
 from math import log
 import numpy as np
 import torch
@@ -158,9 +159,9 @@ class Temporal_Learning(nn.Module):
 def load_model(network, mode, optimizer, scaler, intensity, channel):
     try:
         network.load_state_dict(torch.load("../TrainedModels/tmseeg_" + mode +
-                                           "_" + optimizer + "_" + scaler + "_" 
-                                           + str(intensity) + "_" + 
-                                           str(channel) + "_.model"))
+                                           "_" + optimizer + "_" + scaler +  
+                                           "_int" + str(intensity) + "_ch" + 
+                                           str(channel) + ".model"))
     except RuntimeError:
         print("Runtime Error!")
         print(("Saved model must have the same network architecture with"
@@ -172,9 +173,9 @@ def load_model(network, mode, optimizer, scaler, intensity, channel):
     If in minmax mode, transforms input by scaling them to range (0,1) linearly
     Transforms each trial in the range 0-1 seperately  
 '''
-def minmax_scale(data):
+def minmax_scale(data, args):
     scaler = MinMaxScaler(feature_range=(0,1))
-    data_scaled = scaler.fit_transform(np.transpose(data))        
+    data_scaled = scaler.fit_transform(np.transpose(data)) 
     return np.transpose(data_scaled)
 
 '''
@@ -229,10 +230,16 @@ def main():
     if args.scaler.lower() == "log":
         data, inc = log_scale(unscaled_data)
     elif args.scaler.lower() == "minmax":
-        data = minmax_scale(unscaled_data)
+        # TODO: 
+        '''
+        scaler = joblib.load("Scalers/minmax_int" + str(args.intensity) + "_ch" 
+                             str(args.channel) + "_.sav") 
+        data = np.transpose(scaler.transform(np.transpose(unscaled_data)))
+        '''
+        data = minmax_scale(unscaled_data, args)
     
     # Loads the pre-trained model's parameters to the network architecture 
-    input_size, hidden_size, dropout = 5, 128, 0.5
+    input_size, hidden_size, dropout = 5, 32, 0.5
     network = Temporal_Learning(args.model, input_size, hidden_size, dropout)
     load_model(network, args.model, args.optimizer, args.scaler, 
                args.intensity, args.channel)

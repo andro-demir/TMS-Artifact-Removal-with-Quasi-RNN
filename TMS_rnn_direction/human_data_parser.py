@@ -47,7 +47,8 @@ class parser:
             channel_data = np.transpose(intensity_data[channel, 
                                         parser.start:parser.end, :])
             if all_intensity_data.size != 0:
-                all_intensity_data = np.vstack([all_intensity_data, channel_data])
+                all_intensity_data = np.vstack([all_intensity_data, 
+                                                channel_data])
             else: 
                 all_intensity_data = channel_data
         

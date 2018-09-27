@@ -107,7 +107,7 @@ def set_optimization(model, optimizer):
     # L-BFGS is also well suited if we can load all data to train and the 
     # optimization requires to solve large number of variables
     elif optimizer.lower() == 'l-bfgs':
-        optimizer = optim.LBFGS(model.parameters(), lr=0.5)
+        optimizer = optim.LBFGS(model.parameters(), lr=0.9)
         epochs = 200
     return criterion, optimizer, epochs
     
@@ -183,8 +183,8 @@ def test_model(model, test_input, test_output, epoch, criterion, future,
 '''
 def save_model(model, optimizer, rnn_type, scaler, intensity, channel):
     torch.save(model.state_dict(), f="../TrainedModels/tmseeg_" + rnn_type +
-                                     "_" + optimizer + "_" + scaler + "_" + 
-                                     str(intensity) + "_" + str(channel) + 
-                                     "_.model")
+                                     "_" + optimizer + "_" + scaler + "_int" + 
+                                     str(intensity) + "_ch" + str(channel) + 
+                                     ".model")
     
     
