@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from human_data_parser import parser
+from melon_data_parser import parser
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.externals import joblib
 from math import log
@@ -205,7 +205,7 @@ def inv_logscale(data, inc, log_base=12):
 def plot_results(actual_output, model_output, args):
     plt.plot(actual_output, 'r', label='Actual')
     plt.plot(model_output, 'b', label='Prediction')
-    plt.title('TMS Artifact Preditiction MSO:%s ch:%s' %(args.intensity,
+    plt.title('TMS Artifact Prediction MSO:%s ch:%s' %(args.intensity,
               args.channel), fontsize=30)
     plt.ylabel('Amplitude')
     plt.xlabel('Time (Discrete)')
