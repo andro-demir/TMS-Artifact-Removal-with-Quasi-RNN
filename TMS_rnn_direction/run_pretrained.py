@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from human_data_parser import parser
+from MelonHumanSynth_parser import parser as get_synth
+from melon_forSynth_parser import parser as get_melon
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.externals import joblib
 from math import log
 import numpy as np
 import torch
@@ -161,7 +161,8 @@ def load_model(network, mode, optimizer, scaler, intensity, channel):
         network.load_state_dict(torch.load("../TrainedModels/tmseeg_" + mode +
                                            "_" + optimizer + "_" + scaler +  
                                            "_int" + str(intensity) + "_ch" + 
-                                           str(channel) + ".model"))
+                                           str(channel) + ".model", 
+                                           map_location='cpu'))
     except RuntimeError:
         print("Runtime Error!")
         print(("Saved model must have the same network architecture with"
@@ -202,45 +203,69 @@ def inv_logscale(data, inc, log_base=12):
 '''
     Draws the results.
 '''
-def plot_results(actual_output, model_output, args):
-    time = len(actual_output)
-    plt.plot(actual_output, 'r', label='Actual')
-    plt.plot(model_output, 'b', label='Prediction')
+def plot_results(actual_output, model_output, synth, args):
+    time = np.arange(len(actual_output)) / 5.0
+    plt.plot(time, actual_output, 'r', label='Actual TMS')
+    plt.plot(time, model_output, 'b', label='Prediction')
     plt.title('TMS Artifact Prediction MSO:%s ch:%s' %(args.intensity,
-              args.channel), fontsize=30)
-    plt.ylabel('Amplitude')
+              args.channel), fontsize=20)
+    plt.ylabel('Amplitude (µV)')
     plt.xlabel('Time (ms)')
-    plt.xticks(np.arange(0, time, 4))
     plt.legend()
     plt.show()
-    residuals = actual_output - model_output
-    plt.plot(residuals)
-    plt.title('Residuals MSO:%s ch:%s' %(args.intensity, 
-                                         args.channel), fontsize=30)
-    plt.ylabel('Amplitude')
+    
+    residuals = model_output - synth
+    plt.plot(time, residuals)
+    plt.title('Residuals (EEG) MSO:%s ch:%s' %(args.intensity, 
+              args.channel), fontsize=20)
+    plt.ylabel('Amplitude (µV)')
     plt.xlabel('Time (ms)')
-    plt.xticks(np.arange(0, time, 4))
-    plt.show()    
+    plt.show()
+    
+    human_data = synth - actual_output
+    plt.plot(time, human_data)
+    plt.title('Human (EEG) MSO:%s ch:%s' %(args.intensity, 
+              args.channel), fontsize=20)
+    plt.ylabel('Amplitude (µV)')
+    plt.xlabel('Time (ms)')
+    plt.show() 
+    
+    # compare eeg and residuals from the 5th ms --> 25th sample
+    plt.plot(time[25:], residuals[25:], 'r', label='Predicted EEG')
+    plt.plot(time[25:], human_data[25:], 'b', label='Human EEG')
+    plt.title('EEG and Residuals MSO:%s ch:%s' %(args.intensity,
+              args.channel), fontsize=30)
+    plt.ylabel('Amplitude (µV)')
+    plt.xlabel('Time (ms)')
+    plt.legend()
+    plt.show() 
 
 def main():
     args = pass_legal_args()
     # Loads the TMS-EEG data of desired intensity and from desired channel
-    dp = parser() # Initializes the class, loads TMS-EEG data
+    dp_synth = get_synth() # human + melon data
+    dp_melon = get_melon()
     if args.intensity != 0:
-        dp.get_intensity(args.intensity) # Calls the get_intensity method
-        dp.get_channel(args.channel)     # Calls the get_channel method
+        dp_synth.get_intensity(args.intensity) # Calls the get_intensity method
+        dp_synth.get_channel(args.channel)     # Calls the get_channel method
+        dp_melon.get_intensity(args.intensity)
+        dp_melon.get_channel(args.channel)     
         # Model expects object type of double tensor, write as type 'float64'
-        unscaled_data = np.transpose(dp.channel_data).astype('float64')
+        unscaled_synth = np.transpose(dp_synth.channel_data).astype('float64')
+        melon_data = np.transpose(dp_melon.channel_data).astype('float64')
     else:
-        unscaled_data = dp.get_all_intensities(args.channel).astype('float64')
+        unscaled_synth = dp_synth.get_all_intensities(args.channel).\
+                                                  astype('float64')
+        melon_data = dp_melon.get_all_intensities(args.channel).\
+                                              astype('float64')
     # Shuffles the rows of the dataset:
-    np.random.shuffle(unscaled_data) # in-place operation
+    #np.random.shuffle(unscaled_data) # in-place operation
 
     # Scaling the data:
     if args.scaler.lower() == "log":
-        data, inc = log_scale(unscaled_data)
+        data, inc = log_scale(unscaled_synth)
     elif args.scaler.lower() == "minmax":
-        data = minmax_scale(unscaled_data, args)
+        data = minmax_scale(unscaled_synth, args)
     
     # Loads the pre-trained model's parameters to the network architecture 
     input_size, hidden_size, dropout = 5, 32, 0.5
@@ -259,20 +284,22 @@ def main():
         # tensor.cpu to copy the tensor to host memory first
         model_output = pred.detach().cpu().numpy() 
 
+    synth = unscaled_synth[0,input_size:].reshape(-1,1)
     if args.scaler.lower() == "minmax":
-        inp = test_input.cpu().numpy()[0,input_size:].reshape(-1,1)
+        inp = melon_data[0,input_size:].reshape(-1,1)
+        #inp = test_input.cpu().numpy()[0,input_size:].reshape(-1,1)
         out = model_output[0,:-1].reshape(-1,1)
-        plot_results(inp, out, args) # scaled
-        # now inverse scaling and plots again   
-        a, b = np.amin(unscaled_data[0,:]), np.amax(unscaled_data[0,:])
-        real_inp = inp * (b - a) + a
-        real_out = out * (b - a) + a
-        plot_results(real_inp, real_out, args) # original
+        # inverse scaling and plot   
+        a, b = np.amin(unscaled_synth[0,:]), np.amax(unscaled_synth[0,:])
+        #real_inp = inp * (b - a) + a
+        out = out * (b - a) + a
+        plot_results(inp, out, synth, args)
     elif args.scaler.lower() == "log":
         # inverse scales the log scaled validation data and model output:
-        input_inverted = inv_logscale(test_input.numpy()[0,input_size:], inc)
+        input_inverted = inv_logscale(test_input.cpu().numpy()[0,input_size:], 
+                                                                         inc)
         output_inverted = inv_logscale(model_output[0,:], inc)
-        plot_results(input_inverted, output_inverted, args)
+        plot_results(input_inverted, output_inverted, synth, args)
 
 
 if __name__ == "__main__":

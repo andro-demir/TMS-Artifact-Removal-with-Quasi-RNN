@@ -20,7 +20,7 @@ class parser:
     def __init__(self):
         try:
             self.eeg_data = spio.loadmat(parser.filepath, squeeze_me=True)
-            print("%s is successfully loaded." %parser.filepath)
+            print("TMS-EEG data is successfully loaded.")
         except Exception:
             print("Sorry, %s does not exist." %parser.filepath)
             print("Check the filepath.")

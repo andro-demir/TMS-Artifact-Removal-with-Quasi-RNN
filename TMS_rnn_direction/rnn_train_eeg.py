@@ -152,25 +152,23 @@ def create_dataset(data, input_size, device, k, fold):
     Draws the results.
 '''
 def plot_results(actual_output, model_output, args):
-    time = len(actual_output) / 5.0
-    plt.plot(actual_output, 'r', label='Actual')
-    plt.plot(model_output, 'b', label='Prediction')
+    time = np.arange(len(actual_output)) / 5.0
+    plt.plot(time, actual_output, 'r', label='Actual')
+    plt.plot(time, model_output, 'b', label='Prediction')
     plt.title('TMS Artifact Prediction MSO:%s ch:%s' %(args.intensity,
               args.channel), fontsize=30)
-    plt.ylabel('Amplitude')
+    plt.ylabel('Amplitude (µV)')
     plt.xlabel('Time (ms)')
-    plt.xticks(np.arange(0, time, 4))
     plt.legend()
     plt.savefig('results/MSO%s_ch%s_%s_%s.pdf'%(args.intensity, args.channel, 
                 args.model.lower(), args.optimizer.lower()))
     plt.show()
     residuals = actual_output - model_output
-    plt.plot(residuals)
+    plt.plot(time, residuals)
     plt.title('Residuals MSO:%s ch:%s' %(args.intensity, 
                                          args.channel), fontsize=30)
-    plt.ylabel('Amplitude')
+    plt.ylabel('Amplitude (µV)')
     plt.xlabel('Time (ms)')
-    plt.xticks(np.arange(0, time, 4))
     plt.show()
 
 def main():
@@ -245,15 +243,15 @@ def main():
         if args.scaler.lower() == "minmax":
             inp = test_input.cpu().numpy()[0,input_size:].reshape(-1,1)
             out = model_output[0,:-1].reshape(-1,1)
-            plot_results(inp, out, args) # scaled
-            # now inverse scaling and plots again   
+            # inverse scaling and plots   
             a, b = np.amin(unscaled_data[0,:]), np.amax(unscaled_data[0,:])
             real_inp = inp * (b - a) + a
             real_out = out * (b - a) + a
-            plot_results(real_inp, real_out, args) # scaled
+            plot_results(real_inp, real_out, args) 
         elif args.scaler.lower() == "log":
             # inverse scales the log scaled validation data and model output:
-            input_inverted = inv_logscale(test_input.numpy()[0,input_size:], inc)
+            input_inverted = inv_logscale(test_input.cpu().numpy()[0,input_size:], 
+                                                                              inc)
             output_inverted = inv_logscale(model_output[0,:], inc)
             plot_results(input_inverted, output_inverted, args)
 
