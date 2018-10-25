@@ -230,12 +230,6 @@ def main():
     if args.scaler.lower() == "log":
         data, inc = log_scale(unscaled_data)
     elif args.scaler.lower() == "minmax":
-        # TODO: 
-        '''
-        scaler = joblib.load("Scalers/minmax_int" + str(args.intensity) + "_ch" 
-                             str(args.channel) + "_.sav") 
-        data = np.transpose(scaler.transform(np.transpose(unscaled_data)))
-        '''
         data = minmax_scale(unscaled_data, args)
     
     # Loads the pre-trained model's parameters to the network architecture 
