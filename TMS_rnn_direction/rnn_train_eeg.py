@@ -243,7 +243,7 @@ def main():
                        args.channel)
 
         if args.scaler.lower() == "minmax":
-            inp = test_input.numpy()[0,input_size:].reshape(-1,1)
+            inp = test_input.cpu().numpy()[0,input_size:].reshape(-1,1)
             out = model_output[0,:-1].reshape(-1,1)
             plot_results(inp, out, args) # scaled
             # now inverse scaling and plots again   
