@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class parser:
     
-    filepath = '../humanData.mat'
+    filepath = 'Datasets/humanData.mat'
     start = 9990
     end = 10040
 
@@ -57,7 +57,7 @@ class parser:
 
 
 def plot_data(intensity, channel):
-    filepath = '../humanData.mat'
+    filepath = parser.filepath
     start = 9990
     end = 10040
     eeg_data = spio.loadmat(filepath, squeeze_me=True)

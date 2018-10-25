@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class parser:
     
-    filepath = '../tmseegData.mat'
+    filepath = 'Datasets/Melon_forSynth.mat'
     start = 9990
     end = 10040
 
@@ -48,7 +48,8 @@ class parser:
             channel_data = np.transpose(intensity_data[channel, 
                                         parser.start:parser.end, :])
             if all_intensity_data.size != 0:
-                all_intensity_data = np.vstack([all_intensity_data, channel_data])
+                all_intensity_data = np.vstack([all_intensity_data, 
+                                                channel_data])
             else: 
                 all_intensity_data = channel_data
         
@@ -56,7 +57,7 @@ class parser:
 
 
 def plot_data(intensity, channel):
-    filepath = '../tmseegData.mat'
+    filepath = parser.filepath
     start = 9990
     end = 10040
     eeg_data = spio.loadmat(filepath, squeeze_me=True)
