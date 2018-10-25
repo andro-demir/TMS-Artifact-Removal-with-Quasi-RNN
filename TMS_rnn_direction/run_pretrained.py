@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from melon_data_parser import parser
+from human_data_parser import parser
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.externals import joblib
 from math import log
@@ -203,14 +203,24 @@ def inv_logscale(data, inc, log_base=12):
     Draws the results.
 '''
 def plot_results(actual_output, model_output, args):
+    time = len(actual_output)
     plt.plot(actual_output, 'r', label='Actual')
     plt.plot(model_output, 'b', label='Prediction')
     plt.title('TMS Artifact Prediction MSO:%s ch:%s' %(args.intensity,
               args.channel), fontsize=30)
     plt.ylabel('Amplitude')
-    plt.xlabel('Time (Discrete)')
+    plt.xlabel('Time (ms)')
+    plt.xticks(np.arange(0, time, 4))
     plt.legend()
     plt.show()
+    residuals = actual_output - model_output
+    plt.plot(residuals)
+    plt.title('Residuals MSO:%s ch:%s' %(args.intensity, 
+                                         args.channel), fontsize=30)
+    plt.ylabel('Amplitude')
+    plt.xlabel('Time (ms)')
+    plt.xticks(np.arange(0, time, 4))
+    plt.show()    
 
 def main():
     args = pass_legal_args()
@@ -250,14 +260,14 @@ def main():
         model_output = pred.detach().cpu().numpy() 
 
     if args.scaler.lower() == "minmax":
-        inp = test_input.numpy()[0,input_size:].reshape(-1,1)
+        inp = test_input.cpu().numpy()[0,input_size:].reshape(-1,1)
         out = model_output[0,:-1].reshape(-1,1)
         plot_results(inp, out, args) # scaled
         # now inverse scaling and plots again   
         a, b = np.amin(unscaled_data[0,:]), np.amax(unscaled_data[0,:])
         real_inp = inp * (b - a) + a
         real_out = out * (b - a) + a
-        plot_results(real_inp, real_out, args) # scaled
+        plot_results(real_inp, real_out, args) # original
     elif args.scaler.lower() == "log":
         # inverse scales the log scaled validation data and model output:
         input_inverted = inv_logscale(test_input.numpy()[0,input_size:], inc)
