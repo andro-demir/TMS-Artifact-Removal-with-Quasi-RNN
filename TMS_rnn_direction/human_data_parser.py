@@ -7,7 +7,7 @@ class parser:
     
     filepath = 'Datasets/humanData.mat'
     start = 9990
-    end = 10040
+    end = 10100
 
     ''' 
         Loads the .mat files for the melon data and the tms-eeg data
@@ -20,7 +20,7 @@ class parser:
     def __init__(self):
         try:
             self.eeg_data = spio.loadmat(parser.filepath, squeeze_me=True)
-            print("TMS-EEG data is successfully loaded.")
+            print("%s is successfully loaded." %parser.filepath)
         except Exception:
             print("Sorry, %s does not exist." %parser.filepath)
             print("Check the filepath.")
@@ -59,7 +59,7 @@ class parser:
 def plot_data(intensity, channel):
     filepath = parser.filepath
     start = 9990
-    end = 10040
+    end = 10100
     eeg_data = spio.loadmat(filepath, squeeze_me=True)
     MSO = 'MSO%d'%intensity
     intensity_data = eeg_data[MSO]
