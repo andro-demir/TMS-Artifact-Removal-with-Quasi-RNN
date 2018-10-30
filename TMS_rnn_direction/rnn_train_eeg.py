@@ -201,14 +201,13 @@ def main():
 
     # Shuffles the rows of the dataset:
     np.random.shuffle(unscaled_data) # in-place operation
-
     # Scaling the data:
     if args.scaler.lower() == "log":
         data, inc = log_scale(unscaled_data)
     elif args.scaler.lower() == "minmax":
         data = minmax_scale(unscaled_data, args)
 
-    # This implements K-fold cross validation, K=10
+    # This implements K-fold cross validation, K=5
     k = 5
     for fold in range(k): 
         writer = SummaryWriter() # to plot the loos graph on tensorboard

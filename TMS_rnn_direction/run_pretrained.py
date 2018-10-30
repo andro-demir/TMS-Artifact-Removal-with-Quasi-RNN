@@ -171,6 +171,24 @@ def load_model(network, mode, optimizer, scaler, intensity, channel):
         exit(1) # stop execution with error
 
 '''
+    Loads the pretrained networks. They were trained by scaling the input data
+    with minmax. Intensity not given as a parameter in this one.
+'''
+def load_model(network, mode, optimizer, scaler, channel):
+    try:
+        network.load_state_dict(torch.load("../TrainedModels/tmseeg_" + mode +
+                                           "_" + optimizer + "_" + scaler +  
+                                           "_int" + "0_ch" + str(channel) + 
+                                           ".model", map_location='cpu'))
+    except RuntimeError:
+        print("Runtime Error!")
+        print(("Saved model must have the same network architecture with"
+               " the CopyModel.\nRe-train and save again or fix the" 
+               " architecture of CopyModel."))
+        exit(1) # stop execution with error
+
+
+'''
     If in minmax mode, transforms input by scaling them to range (0,1) linearly
     Transforms each trial in the range 0-1 seperately  
 '''
@@ -201,6 +219,20 @@ def inv_logscale(data, inc, log_base=12):
     return data
 
 '''
+    removes the offset from the data
+'''
+def remove_offset(data):
+    data = data - data[0]
+    return data
+
+'''
+    zero-mean the data
+'''
+def baseline_correction(data):
+    data = data - np.average(data)
+    return data
+
+'''
     Draws the results.
 '''
 def plot_results(actual_output, model_output, synth, args):
@@ -214,7 +246,7 @@ def plot_results(actual_output, model_output, synth, args):
     plt.legend()
     plt.show()
     
-    residuals = model_output - synth
+    residuals = synth - model_output
     plt.plot(time, residuals)
     plt.title('Residuals (EEG) MSO:%s ch:%s' %(args.intensity, 
               args.channel), fontsize=20)
@@ -231,14 +263,23 @@ def plot_results(actual_output, model_output, synth, args):
     plt.show() 
     
     # compare eeg and residuals from the 5th ms --> 25th sample
-    plt.plot(time[25:], residuals[25:], 'r', label='Predicted EEG')
-    plt.plot(time[25:], human_data[25:], 'b', label='Human EEG')
+    plt.plot(time[25:], baseline_correction(residuals[25:]), 'r', 
+                                           label='Predicted EEG')
+    plt.plot(time[25:], baseline_correction(human_data[25:]), 'b', 
+                                                label='Human EEG')
     plt.title('EEG and Residuals MSO:%s ch:%s' %(args.intensity,
               args.channel), fontsize=30)
     plt.ylabel('Amplitude (µV)')
     plt.xlabel('Time (ms)')
     plt.legend()
     plt.show() 
+
+def save_to(out, synth, args):
+    eeg_pred = synth - out
+    for i in range(eeg_pred.shape[0]):
+        eeg_pred[i,25:] = baseline_correction(eeg_pred[i,25:])
+    np.save('forPaper/eeg_pred_MSO%d_ch%d.npy' %(args.intensity, args.channel), 
+                                                                   eeg_pred)
 
 def main():
     args = pass_legal_args()
@@ -258,9 +299,7 @@ def main():
                                                   astype('float64')
         melon_data = dp_melon.get_all_intensities(args.channel).\
                                               astype('float64')
-    # Shuffles the rows of the dataset:
-    #np.random.shuffle(unscaled_data) # in-place operation
-
+    
     # Scaling the data:
     if args.scaler.lower() == "log":
         data, inc = log_scale(unscaled_synth)
@@ -270,8 +309,7 @@ def main():
     # Loads the pre-trained model's parameters to the network architecture 
     input_size, hidden_size, dropout = 5, 32, 0.5
     network = Temporal_Learning(args.model, input_size, hidden_size, dropout)
-    load_model(network, args.model, args.optimizer, args.scaler, 
-               args.intensity, args.channel)
+    load_model(network, args.model, args.optimizer, args.scaler, args.channel)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network.to(device).double()
     network.eval() # set in eval mode 
@@ -284,21 +322,23 @@ def main():
         # tensor.cpu to copy the tensor to host memory first
         model_output = pred.detach().cpu().numpy() 
 
-    synth = unscaled_synth[0,input_size:].reshape(-1,1)
+    trial = 18 # can be betwen 0-29
+    synth = unscaled_synth[trial,input_size:].reshape(-1,1)
     if args.scaler.lower() == "minmax":
-        inp = melon_data[0,input_size:].reshape(-1,1)
-        #inp = test_input.cpu().numpy()[0,input_size:].reshape(-1,1)
-        out = model_output[0,:-1].reshape(-1,1)
+        inp = melon_data[trial,input_size:].reshape(-1,1)
+        out = model_output[trial,:-1].reshape(-1,1)
         # inverse scaling and plot   
-        a, b = np.amin(unscaled_synth[0,:]), np.amax(unscaled_synth[0,:])
-        #real_inp = inp * (b - a) + a
+        a, b = np.amin(unscaled_synth[trial,:]), np.amax(unscaled_synth[trial,:])
         out = out * (b - a) + a
+        inp = remove_offset(inp)
+        out = remove_offset(out)
+        save_to(model_output[:30,:-1], unscaled_synth[:30,input_size:], args)
         plot_results(inp, out, synth, args)
     elif args.scaler.lower() == "log":
         # inverse scales the log scaled validation data and model output:
-        input_inverted = inv_logscale(test_input.cpu().numpy()[0,input_size:], 
-                                                                         inc)
-        output_inverted = inv_logscale(model_output[0,:], inc)
+        input_inverted = inv_logscale(test_input.cpu().numpy()[trial,input_size:], 
+                                                                             inc)
+        output_inverted = inv_logscale(model_output[trial,:], inc)
         plot_results(input_inverted, output_inverted, synth, args)
 
 
