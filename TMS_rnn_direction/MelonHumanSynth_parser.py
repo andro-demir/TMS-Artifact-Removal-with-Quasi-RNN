@@ -69,8 +69,8 @@ def plot_data(intensity, channel):
     plt.show()
 
 def main():
-    plot_data(20, 7)
-    plot_data(80, 7)
+    plot_data(20, 6)
+    plot_data(80, 6)
 
 
 if __name__ == "__main__":
